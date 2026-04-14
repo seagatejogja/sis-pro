@@ -11,8 +11,8 @@ export default async function InvoicesPage() {
     getProducts()
   ]);
 
-  const invoices = invRes.success ? invRes.data : [];
-  const products = prodRes.success ? prodRes.data : [];
+  const invoices = invRes.success && invRes.data ? invRes.data : [];
+  const products = prodRes.success && prodRes.data ? prodRes.data : [];
 
   return (
     <div className="space-y-6">

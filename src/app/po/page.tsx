@@ -12,8 +12,8 @@ export default async function PurchaseOrdersPage() {
     getProducts()
   ]);
 
-  const pos = poRes.success ? poRes.data : [];
-  const products = prodRes.success ? prodRes.data : [];
+  const pos = poRes.success && poRes.data ? poRes.data : [];
+  const products = prodRes.success && prodRes.data ? prodRes.data : [];
 
   return (
     <div className="space-y-6">
