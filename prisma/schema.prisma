@@ -1,0 +1,163 @@
+// Prisma format schema for Solar-Track Integrated System (SIS) Next.js Database
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OPERATOR
+  ADMIN
+  OWNER
+}
+
+enum PoStatus {
+  DRAFT
+  SENT
+  PARTIAL_RECEIVED
+  RECEIVED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PARTIAL_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  name          String
+  role          Role     @default(OPERATOR)
+  warehouse_id  String?  
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+
+  warehouse     Warehouse? @relation(fields: [warehouse_id], references: [id])
+}
+
+model Product {
+  id            String   @id // e.g. PRD-001
+  category      String
+  brand         String
+  model_name    String
+  unit          String
+  min_stock     Int      @default(0)
+  qr_code       String?  @unique
+  description   String?
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  stockBatches  StockBatch[]
+  poItems       PoItem[]
+  invoiceItems  InvoiceItem[]
+}
+
+model Warehouse {
+  id             String   @id // e.g. WH-001
+  warehouse_name String
+  location       String?
+  pic            String?
+  is_active      Boolean  @default(true)
+  created_at     DateTime @default(now())
+
+  users          User[]
+  stockBatches   StockBatch[]
+}
+
+model Contact {
+  id           String   @id // e.g. SUP-001 or INS-001
+  name         String
+  type         String   // Supplier or Installer
+  phone        String?
+  address      String?
+  email        String?
+  is_active    Boolean  @default(true)
+  created_at   DateTime @default(now())
+
+  purchaseOrders PurchaseOrder[]
+  invoices       Invoice[]
+}
+
+model PurchaseOrder {
+  po_no         String   @id // e.g. PO-2026-0001
+  supplier_id   String
+  date          DateTime @default(now())
+  status        PoStatus @default(DRAFT)
+  notes         String?
+  total_est     Float    @default(0)
+  created_by    String?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  supplier      Contact  @relation(fields: [supplier_id], references: [id])
+  items         PoItem[]
+}
+
+model PoItem {
+  id            String   @id @default(uuid())
+  po_no         String
+  product_id    String
+  qty           Float
+  unit          String?
+  unit_price    Float
+  subtotal      Float
+  
+  po            PurchaseOrder @relation(fields: [po_no], references: [po_no])
+  product       Product       @relation(fields: [product_id], references: [id])
+}
+
+model StockBatch {
+  batch_id        String   @id // e.g. BTH-0001
+  po_no           String?  
+  product_id      String
+  warehouse_id    String
+  qty_initial     Float
+  qty_remaining   Float
+  buy_price       Float
+  entry_date      DateTime @default(now())
+  manual_ref      String?
+
+  product         Product   @relation(fields: [product_id], references: [id])
+  warehouse       Warehouse @relation(fields: [warehouse_id], references: [id])
+}
+
+model Invoice {
+  inv_no        String   @id // e.g. INV-2026-0001
+  date          DateTime @default(now())
+  installer_id  String
+  status        InvoiceStatus @default(DRAFT)
+  total_hpp     Float    @default(0)
+  total_amount  Float    @default(0)
+  notes         String?
+  created_by    String?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  installer     Contact  @relation(fields: [installer_id], references: [id])
+  items         InvoiceItem[]
+}
+
+model InvoiceItem {
+  id            String   @id @default(uuid())
+  inv_no        String
+  product_id    String
+  qty           Float
+  unit          String?
+  sell_price    Float
+  subtotal      Float
+  hpp_per_unit  Float    @default(0)
+  hpp_subtotal  Float    @default(0)
+  
+  invoice       Invoice  @relation(fields: [inv_no], references: [inv_no])
+  product       Product  @relation(fields: [product_id], references: [id])
+}
